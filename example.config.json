@@ -1,0 +1,12 @@
+{
+    "git":{
+        "token":"Github Repo Token",
+        "logFileName":"ValheimCheckout.log",
+        "repo":"Github repo",
+        "branch":"Github branch"
+    },
+    "valheim":{
+        "worldName": "HelloWorld",
+        "path": "Path to game worlds"
+    }
+}
