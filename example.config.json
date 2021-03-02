@@ -7,6 +7,9 @@
     },
     "valheim":{
         "worldName": "HelloWorld",
-        "path": "Path to game worlds"
-    }
+        "worldPath": "Path to game worlds",
+        "steamPath": "Path to steam",
+        "appID": "Game's application ID",
+        "gamePath": "Path to game"
+    }    
 }
