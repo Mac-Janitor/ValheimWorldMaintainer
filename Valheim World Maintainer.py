@@ -3,8 +3,11 @@ import base64
 import requests
 import subprocess
 import os
+import tempfile
+import getpass
 import psutil
 import time
+import datetime
 
 with open("config.json") as json_data_file:
     config = json.load(json_data_file)
@@ -20,7 +23,7 @@ def determine_host(filename, repo, branch, token):
     textLines = data.text.splitlines()
     if textLines[-1].startswith("Checked In"):
         return True
-    return False  
+    return False 
 
 def get_git_files(worldName, repo, branch, token):
     url="https://api.github.com/repos/"+repo+"/"
@@ -90,6 +93,23 @@ def push_to_github(pathToFile, filename, repo, branch, token, sha):
 
     print(resp)
 
+def update_log_file(action, filename, repo, branch, token):
+    url="https://api.github.com/repos/"+repo+"/contents/"+filename
+
+    response = requests.get(url+'?ref='+branch, headers = {"Authorization": "token "+token, "Accept": "application/vnd.github.v3.raw"})
+
+    f = open(tempfile.gettempdir()+"/"+filename, "wb")
+    f.write(response.content)
+    f.close()
+
+    f = open(tempfile.gettempdir()+"/"+filename, "a")
+    f.write("\n" + action + " By "+getpass.getuser()+" "+str(datetime.datetime.now()))
+    f.close()    
+
+    response = requests.get(url+'?ref='+branch, headers = {"Authorization": "token "+token})
+
+    push_to_github(tempfile.gettempdir(), filename, repo, branch, token, response.json()["sha"])
+
 # def get_pid(name):
 #     for proc in psutil.process_iter():
 #         if name in proc.name():
@@ -110,6 +130,7 @@ gamePath = config["valheim"]["gamePath"]
 host = determine_host(logFileName, repo, branch, token)
 if host == True:
     print("You da host")
+    update_log_file("Checked Out", logFileName, repo, branch, token)
     download_world_files(worldName, repo, branch, token, worldPath)
     os.chdir(gamePath)
     os.system("valheim.exe")
@@ -120,11 +141,13 @@ if host == True:
     # pid = get_pid("valheim")
     # print(pid)
     # os.waitpid(pid, -1)
-
     # process.wait()
+
     print("Game has ended")
     upload_world_files(worldPath, repo, branch, token)
+    update_log_file("Checked In", logFileName, repo, branch, token)
 else:
     print("You NOT da host")
-    subprocess.run(steamPath)
+    os.chdir(gamePath)
+    os.system("valheim.exe")
 
