@@ -1,13 +1,12 @@
 import json
 import base64
 import requests
-import subprocess
-import os
 import tempfile
 import getpass
-import psutil
-import time
 import datetime
+import subprocess
+import time
+import psutil
 
 with open("config.json") as json_data_file:
     config = json.load(json_data_file)
@@ -78,10 +77,6 @@ def push_to_github(pathToFile, filename, repo, branch, token, sha):
 
     base64content=base64.b64encode(open(filePath,"rb").read())
 
-    # data = requests.get(url+'git/blobs/'+sha, headers = {"Authorization": "token "+token, "Accept": "application/vnd.github.v3.raw"}).json()
-    # data = requests.get(url+'?ref='+branch, headers = {"Authorization": "token "+token}).json()
-    # sha = data['sha']
-
     # if base64content.decode('utf-8')+"\n" != data['content']:
     message = json.dumps({"message":"update",
                         "branch": branch,
@@ -110,10 +105,15 @@ def update_log_file(action, filename, repo, branch, token):
 
     push_to_github(tempfile.gettempdir(), filename, repo, branch, token, response.json()["sha"])
 
-# def get_pid(name):
-#     for proc in psutil.process_iter():
-#         if name in proc.name():
-#             return proc.pid
+def wait_for_process(name):
+    time.sleep(5)
+    run = True
+    while run:
+        run = False
+        for proc in psutil.process_iter():
+            if name in proc.name():
+                run = True
+                time.sleep(1.0)
 
 token = config["git"]["token"]
 logFileName= config["git"]["logFileName"]
@@ -125,29 +125,20 @@ steamPath = config["valheim"]["steamPath"]
 appID = config["valheim"]["appID"]
 gamePath = config["valheim"]["gamePath"]
 
-# push_to_github("", logFileName, repo, branch, token)
-
 host = determine_host(logFileName, repo, branch, token)
 if host == True:
     print("You da host")
     update_log_file("Checked Out", logFileName, repo, branch, token)
     download_world_files(worldName, repo, branch, token, worldPath)
-    os.chdir(gamePath)
-    os.system("valheim.exe")
 
-    # launchCommand = "\""+steamPath+"\""+ "steam://run/" + appID
-    # process = subprocess.call(launchCommand)
-    # time.sleep(5)
-    # pid = get_pid("valheim")
-    # print(pid)
-    # os.waitpid(pid, -1)
-    # process.wait()
+    process = subprocess.Popen(steamPath + "\steam.exe -applaunch " + appID)
+    wait_for_process("valheim")
 
     print("Game has ended")
     upload_world_files(worldPath, repo, branch, token)
     update_log_file("Checked In", logFileName, repo, branch, token)
 else:
     print("You NOT da host")
-    os.chdir(gamePath)
-    os.system("valheim.exe")
 
+    process = subprocess.Popen(steamPath + "\steam.exe -applaunch " + appID)
+    wait_for_process("valheim")
